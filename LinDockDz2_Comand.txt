@@ -1,0 +1,206 @@
+ЦП Разработчик Программист группа 3252
+
+https://github.com/SB44444/LinDockDz2.git
+
+Контейнеризация (семинары)
+Урок 2. Механизмы контрольных групп
+Задания: 
+1. запустить контейнер с ubuntu, используя механизм LXC
+2. ограничить контейнер 256 Мб ОЗУ и проверить, что ограничение работает
+Задания по желанию ..
+4. добавить автозапуск контейнеру, перезагрузить ОС и убедиться, что контейнер действительно запустился самостоятельно
+5. ''при создании указать файл, куда записывать логи
+6. ''после перезагрузки проанализировать логи
+
+
+sb@sb-VBox:~$ sudo su
+[sudo] пароль для sb: 
+root@sb-VBox:/home/sb# free -m
+               total        used        free      shared  buff/cache   available
+Память:       1963         910         127          17         925         878
+Подкачка:       2679         256        2423
+root@sb-VBox:/home/sb# lxc storage list
+
+Команда «lxc» не найдена, но может быть установлена с помощью:
+snap install lxd            # version 5.15-002fa0f, or
+apt  install lxd-installer  # version 1
+See 'snap info lxd' for additional versions.
+root@sb-VBox:/home/sb# ^C
+root@sb-VBox:/home/sb# snap install lxd
+
+lxd 5.15-002fa0f от Canonical✓ установлен
+root@sb-VBox:/home/sb# lxc storage list
+
+If this is your first time running LXD on this machine, you should also run: lxd init
+To start your first container, try: lxc launch ubuntu:22.04
+Or for a virtual machine: lxc launch ubuntu:22.04 --vm
+
++------+--------+--------+-------------+---------+-------+
+
+| NAME | DRIVER | SOURCE | DESCRIPTION | USED BY | STATE |
+
++------+--------+--------+-------------+---------+-------+
+
+root@sb-VBox:/home/sb# sudo apt-get install lxc lxc-templates // обновили шаблоны
+root@sb-VBox:/home/sb# unshare --net --pid --fork --mount-proc bash
+
+root@sb-VBox:/home/sb# ps aux
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.2  18888  4032 pts/1    S    00:40   0:00 bash
+root           7  0.0  0.0  21356  1576 pts/1    R+   00:40   0:00 ps aux
+
+root@sb-VBox:/home/sb# free -m
+               total        used        free      shared  buff/cache   available
+Память:       1963         878         189          17         895         900
+Подкачка:       2679         340        2339
+
+root@sb-VBox:/home/sb# apt install cgroup-tools
+root@sb-VBox:/home/sb# cgcreate -a $USER -g memory:mytestgroup -g cpu:mytestgroup # Создана группа с правами настроек ограничение памяти и CPU
+
+root@sb-VBox:/home/sb# ls /sys/fs/cgroup/mytestgroup/
+cgroup.controllers      cpuset.mems            memory.min
+cgroup.events           cpuset.mems.effective  memory.numa_stat
+cgroup.freeze           cpu.stat               memory.oom.group
+cgroup.kill             cpu.uclamp.max         memory.peak
+cgroup.max.depth        cpu.uclamp.min         memory.pressure
+cgroup.max.descendants  cpu.weight             memory.reclaim
+cgroup.procs            cpu.weight.nice        memory.stat
+cgroup.stat             io.max                 memory.swap.current
+cgroup.subtree_control  io.pressure            memory.swap.events
+cgroup.threads          io.prio.class          memory.swap.high
+cgroup.type             io.stat                memory.swap.max
+cpu.idle                io.weight              memory.zswap.current
+cpu.max                 memory.current         memory.zswap.max
+cpu.max.burst           memory.events          pids.current
+cpu.pressure            memory.events.local    pids.events
+cpuset.cpus             memory.high            pids.max
+cpuset.cpus.effective   memory.low
+cpuset.cpus.partition   memory.max
+root@sb-VBox:/home/sb# cd /sys/fs/cgroup/mytestgroup
+root@sb-VBox:/sys/fs/cgroup/mytestgroup# cat memory.max
+
+root@sb-VBox:/sys/fs/cgroup/mytestgroup# cgexec -g memory:mytestgroup bash
+root@sb-VBox:/sys/fs/cgroup/mytestgroup# ls
+cgroup.controllers      cpuset.mems            memory.min
+cgroup.events           cpuset.mems.effective  memory.numa_stat
+cgroup.freeze           cpu.stat               memory.oom.group
+cgroup.kill             cpu.uclamp.max         memory.peak
+cgroup.max.depth        cpu.uclamp.min         memory.pressure
+cgroup.max.descendants  cpu.weight             memory.reclaim
+cgroup.procs            cpu.weight.nice        memory.stat
+cgroup.stat             io.max                 memory.swap.current
+cgroup.subtree_control  io.pressure            memory.swap.events
+cgroup.threads          io.prio.class          memory.swap.high
+cgroup.type             io.stat                memory.swap.max
+cpu.idle                io.weight              memory.zswap.current
+cpu.max                 memory.current         memory.zswap.max
+cpu.max.burst           memory.events          pids.current
+cpu.pressure            memory.events.local    pids.events
+cpuset.cpus             memory.high            pids.max
+cpuset.cpus.effective   memory.low
+cpuset.cpus.partition   memory.max
+root@sb-VBox:/sys/fs/cgroup/mytestgroup# free -m
+               total        used        free      shared  buff/cache   available
+Память:       1963        1111         154          33         697         665
+Подкачка:       2679          48        2631
+root@sb-VBox:/sys/fs/cgroup/mytestgroup# exit
+exit
+root@sb-VBox:/# lxc storage list
+
++------+--------+--------+-------------+---------+-------+
+
+| NAME | DRIVER | SOURCE | DESCRIPTION | USED BY | STATE |
+
++------+--------+--------+-------------+---------+-------+
+
+root@sb-VBox:/# 
+root@sb-VBox:/# lxc-create -n test123 -t ubuntu        # Создан lxc контейнер
+
+Current default time zone: 'Etc/UTC'
+Local time is now:      Wed Jul 12 22:32:09 UTC 2023.
+Universal Time is now:  Wed Jul 12 22:32:09 UTC 2023.
+
+# The default user is 'ubuntu' with password 'ubuntu'!
+# Use the 'sudo' command to run tasks as root in the container.
+
+root@sb-VBox:/# lxc-start -n test123                       # Запуск lxc контейнера
+root@sb-VBox:/# lxc-attach -n test123                      # Вход lxc в контейнер
+root@test123:/# free -m
+               total        used        free      shared  buff/cache   available
+Память:       1963          27        1903           0          31        1935
+Подкачка:          0           0           0
+
+root@test123:/# 
+root@test123:/# df -hT
+
+Файл.система   Тип   Размер Использовано  Дост Использовано% Cмонтировано в
+/dev/sda3      ext4     24G          16G  7,3G           69% /
+none           tmpfs   492K         4,0K  488K            1% /dev
+tmpfs          tmpfs   982M            0  982M            0% /dev/shm
+tmpfs          tmpfs   393M          88K  393M            1% /run
+tmpfs          tmpfs   5,0M            0  5,0M            0% /run/lock
+root@test123:/# exit
+exit
+
+root@sb-VBox:/# lxc-stop -n test123
+root@sb-VBox:/# nano /var/lib/lxc/test123/config
+lxc.cgroup2.memory.max = 256M              # Запись в файл конфигурации ограничения по памяти 256М
+root@sb-VBox:/# lxc-start -n test123
+root@sb-VBox:/# lxc-attach -n test123
+
+root@test123:/# free -m
+               total        used        free      shared  buff/cache   available  # Ограничения работают
+Память:        256          26         213           0          15         229
+Подкачка:          0           0           0
+
+root@test123:/# 
+root@sb-VBox:/# lxc-stop -n test123
+root@sb-VBox:/# nano /var/lib/lxc/test123/co  nfig   #  Внесены изменнения в конф. файл для автозагрузки
+lxc.start.auto  =  1   # Возможность автозапуска
+lxc.start.delay = 20   # Таймаут старта 20 секунд
+lxc.start.order = 50   # Порядок запуска процесса
+root@sb-VBox:/# nano /var/lib/lxc/test123/config
+root@sb-VBox:/# lxc-start -n test123
+root@sb-VBox:/# lxc-attach -n test123
+root@test123:/# exit
+exit
+
+root@test123:/# reboot
+
+sb@sb-VBox:~$ sudo su
+[sudo] пароль для sb: 
+root@sb-VBox:/home/sb# lxc-attach -n test123
+root@test123:/# free -m                               # После  перезагрузки контенер работает
+               total        used        free      shared  buff/cache   available
+Память:        256          28         201           0          25         227
+Подкачка:          0           0           0
+root@test123:/# exit
+exit
+
+root@sb-VBox:/home/sb# sudo lxc-ls -f
+NAME    STATE   AUTOSTART GROUPS IPV4       IPV6 UNPRIVILEGED 
+test123 RUNNING 1         -      10.0.3.223 -    false 
+
+
+
+lxc-start -d -n test123 --logfile t.log --logpriority debug # Создан файл для записи логов передав -debug демону LXD
+ 
+root@sb-VBox:/var/log/lxc# nano /var/log/lxc #  Вывод всех логов с повышенным приоритетом
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
